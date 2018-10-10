@@ -83,7 +83,7 @@ class RLEnvironment:
             # 観測値をそのまま状態sとして使用
             state = observation
             # numpy変数をPyTorchのテンソルに変換
-            if self.device == "cuda":
+            if self.device.type == "cuda":
                 state = torch.from_numpy(state).type(torch.cuda.FloatTensor)
             else:
                 state = torch.from_numpy(state).type(torch.FloatTensor)
@@ -134,7 +134,7 @@ class RLEnvironment:
                     # 観測をそのまま状態とする
                     state_next = observation_next
                     # numpy変数をPytorchのテンソルに変換
-                    if self.device == "cuda":
+                    if self.device.type == "cuda":
                         state_next = torch.from_numpy(state_next).type(torch.cuda.FloatTensor)
                     else:
                         state_next = torch.from_numpy(state_next).type(torch.FloatTensor)

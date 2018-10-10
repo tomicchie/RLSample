@@ -229,7 +229,7 @@ class RLBrain:
         non_final_mask = torch.tensor(tuple(map(lambda s: s is not None, batch.next_state)), dtype=torch.uint8, device=self.device)
 
         # まずは全部0にしておく。サイズはメモリの長さ
-        next_state_values = torch.zeros(len(self.memory))
+        next_state_values = torch.zeros(len(self.memory), device=self.device)
         a_m = torch.zeros(len(self.memory), dtype=torch.long, device=self.device)
 
         # 次の状態での最大Q値の行動a_mをMain Q-Networkから求める
@@ -249,4 +249,4 @@ class RLBrain:
         td_errors = (reward_batch + gamma * next_state_values) - state_action_values.squeeze()
 
         # TD誤差メモリを更新、Tensorをdetachで取り出し、NumPyにしてから、Pythonのリストまで変換
-        self.td_error_memory.memory = td_errors.detach().numpy().tolist()
+        self.td_error_memory.memory = td_errors.detach().cpu().numpy().tolist()
