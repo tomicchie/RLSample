@@ -27,23 +27,30 @@ class RLBrain:
         # 経験を記憶するメモリオブジェクトを生成
         self.memory = ReplayMemory.ReplayMemory(self.util.getCAPACITY())
 
+        # デバイス情報の設定
+        d = self.util.getDEVICE()
+        self.device = torch.device(d)
+
         # NNの構築
         self.model = nn.Sequential()
-        self.model.add_module('fc1', nn.Linear(num_states, 32))
-        self.model.add_module('relu1', nn.ReLU())
-        self.model.add_module('fc2', nn.Linear(32, 32))
-        self.model.add_module('relu2', nn.ReLU())
-        self.model.add_module('fc3', nn.Linear(32, num_actions))
+        if self.device.type == "cuda":
+            self.model.add_module('fc1', nn.Linear(num_states, 32).cuda())
+            self.model.add_module('relu1', nn.ReLU().cuda())
+            self.model.add_module('fc2', nn.Linear(32, 32).cuda())
+            self.model.add_module('relu2', nn.ReLU().cuda())
+            self.model.add_module('fc3', nn.Linear(32, num_actions).cuda())
+        else:
+            self.model.add_module('fc1', nn.Linear(num_states, 32))
+            self.model.add_module('relu1', nn.ReLU())
+            self.model.add_module('fc2', nn.Linear(32, 32))
+            self.model.add_module('relu2', nn.ReLU())
+            self.model.add_module('fc3', nn.Linear(32, num_actions))
 
         # NWの形を出力
         print(self.model)
 
         # 最適化手法の設定
         self.optimizer = optim.Adam(self.model.parameters(), lr=0.0001)
-
-        # デバイスの設定
-        d = self.util.getDEVICE()
-        self.device = torch.device(d)
 
     def replay(self):
         '''
