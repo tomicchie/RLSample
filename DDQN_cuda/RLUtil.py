@@ -21,7 +21,7 @@ class RLUtil:
         self.BATCH_SIZE = 32
         self.CAPACITY = 10000
         # Device切り替え用定数
-        self.DEVICE = "cpu"
+        self.DEVICE = "cuda"
 
     def getENV(self):
         '''
