@@ -21,6 +21,7 @@ import RLBrain
 import RolloutStorage
 
 
+
 class RLEnvironment:
     '''
     cartpoleを実行する環境クラス
@@ -35,6 +36,7 @@ class RLEnvironment:
 
         # 全エージェントが共有して持つBrainを生成
         # 状態は4
+        # n_in, n_out, n_midは数値情報
         n_in = self.envs[0].observation_space.shape[0]
         # 行動は2
         n_out = self.envs[0].action_space.n
@@ -60,13 +62,14 @@ class RLEnvironment:
         max_steps = self.util.getMAX_STEPS()
 
         # 格納用変数の設定
-        current_obs = torch.zeros(num_processes, self.obs_shape)
+        # row = num_processes, col = obs_shape
+        current_obs = torch.zeros(num_processes, self.obs_shape, device=self.device)
         # RolloutStorageオブジェクトを生成
         rollouts = RolloutStorage.RolloutStorage(num_advanced_step, num_processes, self.obs_shape)
         # 現在の試行の報酬を保持
-        episode_rewards = torch.zeros([num_processes, 1])
+        episode_rewards = torch.zeros([num_processes, 1], device=self.device)
         # 最後の試行の報酬を保持
-        final_rewards = torch.zeros([num_processes, 1])
+        final_rewards = torch.zeros([num_processes, 1], device=self.device)
         # Numpy配列
         obs_np = np.zeros([num_processes, self.obs_shape])
         reward_np = np.zeros([num_processes, 1])
@@ -80,12 +83,13 @@ class RLEnvironment:
         obs = [self.envs[i].reset() for i in range(num_processes)]
         obs = np.array(obs)
         # デバイスによりデータ型が変わるので分岐。torch.Size([16,4])
-        if self.device == "cuda":
+        if self.device.type == "cuda":
             obs = torch.from_numpy(obs).type(torch.cuda.FloatTensor)
         else:
             obs = torch.from_numpy(obs).type(torch.FloatTensor)
         # 最新のobsを格納
         current_obs = obs
+
         
         # Advanced学習用のオブジェクトrolloutsの状態の1つめに、現在の状態を保存
         rollouts.observations[0].copy_(current_obs)
@@ -100,7 +104,8 @@ class RLEnvironment:
                 with torch.no_grad():
                     action = self.actor_critic.act(rollouts.observations[step])
                 # Tensorをnumpyに変換
-                actions = action.squeeze(1).numpy()
+                # CUDA形式を採用している場合は変換できないので、.cpu()を入れている
+                actions = action.squeeze(1).cpu().numpy()
 
                 # 1stepの実行
                 for i in range(num_processes):
@@ -135,7 +140,7 @@ class RLEnvironment:
                 
                 # 報酬をTensorに変換し、試行の総報酬に足す
                 # デバイスによりデータ型が変わるので分岐。
-                if self.device == "cuda":
+                if self.device.type == "cuda":
                     reward = torch.from_numpy(reward_np).type(torch.cuda.FloatTensor)
                 else:
                     reward = torch.from_numpy(reward_np).type(torch.FloatTensor)
@@ -159,7 +164,7 @@ class RLEnvironment:
 
                 # current_obsを更新
                 # 最新のobsを格納
-                if self.device == "cuda":
+                if self.device.type == "cuda":
                     obs = torch.from_numpy(obs_np).type(torch.cuda.FloatTensor)
                 else:
                     obs = torch.from_numpy(obs_np).type(torch.FloatTensor)
@@ -184,7 +189,8 @@ class RLEnvironment:
             rollouts.after_update()
 
             # 全部のfinal_rewardsがnum_processesを超えたら成功
-            if final_rewards.sum().numpy() >= num_processes:
+            # CUDAを使うとnumpy形式に変換できないので.cpu()が必要。
+            if final_rewards.sum().cpu().numpy() >= num_processes:
                 print("連続成功")
                 break
 

@@ -17,17 +17,17 @@ class RolloutStorage(object):
         d = self.util.getDEVICE()
         self.device = torch.device(d)
 
-        self.observations = torch.zeros(num_steps + 1, num_processes, 4)
-        self.masks = torch.ones(num_steps + 1, num_processes, 1)
-        self.rewards = torch.zeros(num_steps, num_processes, 1)
+        self.observations = torch.zeros(num_steps + 1, num_processes, 4, device=self.device)
+        self.masks = torch.ones(num_steps + 1, num_processes, 1, device=self.device)
+        self.rewards = torch.zeros(num_steps, num_processes, 1, device=self.device)
 
-        if self.device == 'cuda':
+        if self.device.type == "cuda":
             self.actions = torch.zeros(num_steps, num_processes, 1).type(torch.cuda.LongTensor)
         else:
             self.actions = torch.zeros(num_steps, num_processes, 1).type(torch.LongTensor)
 
         # 割引報酬和を格納
-        self.returns = torch.zeros(num_steps + 1, num_processes, 1)
+        self.returns = torch.zeros(num_steps + 1, num_processes, 1, device=self.device)
         # insertするindex値
         self.index = 0
     
